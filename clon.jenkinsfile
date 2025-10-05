@@ -1,0 +1,14 @@
+pipeline {
+    agent any
+    stages {
+        stage('Clonar repositorio') {
+            steps {
+                git(
+                    url: 'https://gitlab.com/dim9920713/webapplication2.git',
+                    credentialsId: 'gitlab-token-creds1',
+                    branch: 'main'
+                )
+            }
+        }
+    }
+}
