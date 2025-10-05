@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+    stages {
+        stage('Clonar repositorio') {
+            steps {
+                git(
+                    url: 'https://gitlab.com/dim9920713/prueba02.git', // Cambia por tu repositorio
+                    credentialsId: 'gitlab-token-creds1',
+                    branch: 'master'
+                )
+            }
+        }
+        stage('Restaurar dependencias') {
+            steps {
+                echo "Restaurando dependencias..."
+                bat 'dotnet restore' // Restaura las dependencias necesarias del proyecto
+            }
+        }
+        stage('Compilar proyecto') {
+            steps {
+                echo "Compilando el proyecto .NET..."
+                bat 'dotnet build -c Release' // Compila el proyecto en modo Release
+            }
+        }
+        stage('Publicar aplicación') {
+            steps {
+                echo "Publicando la aplicación..."
+                bat 'dotnet publish -c Release -o .\\publicado' // Publica la aplicación en la carpeta "publicado"
+            }
+        }
+        stage('Copiar a IIS con permisos elevados') {
+            steps {
+                script {
+                    def targetPath = "C:\\inetpub\\wwwroot\\${env.JOB_NAME}" // Carpeta con nombre del Job
+
+                    // Usar PowerShell para ejecutar con permisos elevados
+                    powershell """
+                    Start-Process powershell.exe -ArgumentList 'if (!(Test-Path "${targetPath}")) { New-Item -ItemType Directory -Path "${targetPath}" }; Copy-Item -Path .\\publicado\\* -Destination "${targetPath}" -Recurse -Force' -Verb RunAs
+                    """
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline ejecutado con éxito. ¡Archivos desplegados en IIS!'
+        }
+        failure {
+            echo 'El pipeline falló. Verifica los logs para más detalles.'
+        }
+    }
+}
